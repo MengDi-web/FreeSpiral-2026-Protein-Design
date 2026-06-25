@@ -1,3 +1,8 @@
+> **Note:** This document summarizes the design methodology. For the
+> complete, detailed methodology (including data analysis, ESM-2 generation
+> protocol, MD simulation parameters, and full reference list), see
+> **[method.md](../method.md)** in the repository root.
+
 # FreeSpiral: AI-Guided Protein Design for the 2026 Synthetic Biology Innovation Challenge
 
 ## Design Report

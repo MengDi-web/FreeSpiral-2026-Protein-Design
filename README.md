@@ -107,42 +107,47 @@ for i, s in enumerate(seqs):
     print(f'Seq{i+1}: {"CLEAR" if s not in excluded else "IN EXCLUSION"}')"
 ```
 
+## Design Methodology
+
+For a comprehensive description of our design pipeline—including data analysis, rational design, ESM-2 generation, structural validation, and MD thermal stability screening—see **[method.md](method.md)**.
+
+## Validation
+
+Run the validation script to check all sequences against competition rules:
+
+```bash
+python scripts/validate.py
+```
+
+This checks:
+- CSV format (Team_Name, Seq_ID, Sequence)
+- All 6 sequences present
+- Length 220-250 aa
+- Start with Methionine (M)
+- Standard 20 amino acids only (ACDEFGHIKLMNPQRSTVWY)
+- No stop codons (*)
+- Not in Exclusion_List.csv (135,414 sequences checked)
+
 ## Repository Structure
 
 ```
-README.md                 This file
-submission.csv            Final 6 sequences
+README.md                 Repository overview
+method.md                 Full design methodology (this document)
+submission.csv            Final 6 sequences (competition deliverable)
 designed_sequences.txt    Annotated sequences with design rationale
 .gitignore                Ignored files
 SERVER_RUNBOOK.md         Server operations guide
+data/
+  submission_template.csv  CSV format example with annotation
 docs/
   design_report.pdf       Full methodology report (competition deliverable)
 scripts/
   validate.py             Competition rule validation
   design_sequences.py     Sequence generation pipeline
-  run_esm3_generation.sh  ESM-2/3 generation script
-  run_alphafold2.sh       AlphaFold2 prediction wrapper
-  run_md.py               OpenMM MD simulation engine
-  run_openmm_md.py        Alternative MD entry point
   batch_md.py             Batch MD pipeline
+  run_md.py               OpenMM MD simulation engine
+  run_esm3_generation.sh  ESM-2/3 generation script
   deploy_to_server.sh     Deployment to alpha server
 ```
 
-## Key References
-
-1. Pedelacq et al. (2006) Superfolder GFP. Nature Biotech. doi:10.1038/nbt1172
-2. Lin et al. (2023) ESM-2: Evolutionary-scale prediction. Science. doi:10.1126/science.ade2574
-3. Rives et al. (2021) Scaling unsupervised learning to 250M protein sequences. PNAS.
-4. Heim et al. (1994) Wavelength mutations of GFP. PNAS.
-5. Tsien (1998) The green fluorescent protein. Ann. Rev. Biochem.
-6. Cormack et al. (1996) FACS-optimized GFP mutants. Gene.
-7. Eastman et al. (2017) OpenMM 7. PLOS Comput. Biol. doi:10.1371/journal.pcbi.1005659
-8. Kabsch & Sander (1983) Dictionary of protein secondary structure. Biopolymers.
-
 ## License
-
-MIT - Open source for reproducibility.
-
----
-
-Team FreeSpiral -- 2026 Synthetic Biology Innovation Competition

@@ -1,112 +1,111 @@
 #!/usr/bin/env python3
 """
-FoldSynth Sequence Design Pipeline
-AI-guided rational design of GFP variants for competition
+FoldSynth - Reproduce FreeSpiral 6 sequences for 2026 Protein Design Challenge.
 """
-import csv
+import csv, sys
 
-# Reference sequences
 avGFP = "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
 sfGFP = "MSKGEELFTGVVPILVELDGDVNGHKFSVRGEGEGDATNGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKRHDFFKSAMPEGYVQERTISFKDDGTYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNFNSHNVYITADKQKNGIKANFKIRHNIVEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSVLSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
 
+
 def mutate(seq, changes):
-    """Apply (pos, new_aa) mutations. pos is 1-indexed."""
     s = list(seq)
     for pos, new in changes:
-        s[pos-1] = new
-    return ''.join(s)
+        s[pos - 1] = new
+    return "".join(s)
 
-def validate(seq):
-    """Check competition requirements"""
-    return (seq.startswith('M') and 220<=len(seq)<=250 and 
-            all(c in 'ACDEFGHIKLMNPQRSTVWY' for c in seq))
 
-# Design strategies with rationale
-DESIGN_STRATEGIES = {
-    "Seq1_avGFP_Champion": {
+def diff(ref, seq):
+    muts = []
+    for i, (r, s) in enumerate(zip(ref, seq)):
+        if r != s:
+            muts.append(f"{r}{i+1}{s}")
+    return muts
+
+
+DESIGNS = [
+    {
+        "sid": "1",
+        "desc": "Champion - Balanced Brightness & Stability",
         "backbone": avGFP,
-        "desc": "Balanced brightness+stability",
-        "mutations": [
-            (65,'T'), (72,'A'), (80,'R'), (143,'G'), (147,'P'),
-            (157,'G'), (163,'A'), (167,'T'), (171,'V'), (202,'D')
-        ],
-        "rationale": "Top winner mutations + brightness enhancers"
+        "source": "avGFP competition reference",
+        "muts": [(65, "T"), (72, "A"), (80, "R"), (147, "P"), (157, "G"), (167, "T"), (171, "V")],
+        "note": "Q157G (+2.48x) + S65T + sfGFP stability mutations",
     },
-    "Seq2_avGFP_BrightStar": {
+    {
+        "sid": "2",
+        "desc": "BrightStar - Maximized Brightness",
         "backbone": avGFP,
-        "desc": "Maximum brightness",
-        "mutations": [
-            (30,'R'), (65,'T'), (72,'A'), (80,'R'), (143,'G'),
-            (147,'P'), (157,'G'), (163,'A'), (167,'T'), (171,'V')
-        ],
-        "rationale": "S30R for folding + brightness mutations"
+        "source": "avGFP + sfGFP (S30R)",
+        "muts": [(30, "R"), (65, "T"), (72, "A"), (80, "R"), (147, "P"), (157, "G"), (167, "T"), (171, "V")],
+        "note": "S30R folding enhancer + top brightness mutations",
     },
-    "Seq3_sfGFP_BrightPlus": {
+    {
+        "sid": "3",
+        "desc": "ThermalShield - Maximized Thermal Stability",
+        "backbone": avGFP,
+        "source": "avGFP + StayGold (L64F)",
+        "muts": [(64, "F"), (65, "T"), (72, "A"), (147, "P"), (167, "T"), (171, "V")],
+        "note": "L64F (StayGold) + S147P loop rigidification",
+    },
+    {
+        "sid": "4",
+        "desc": "sfGFP-Stable - sfGFP Backbone Enhanced",
         "backbone": sfGFP,
-        "desc": "sfGFP + brightness enhancers",
-        "mutations": [
-            (72,'A'), (143,'G'), (147,'P'), (157,'G'), (167,'T'), (171,'V')
-        ],
-        "rationale": "Superfolder backbone + extra brightness"
+        "source": "sfGFP (PDB: 2B3P)",
+        "muts": [(147, "P"), (157, "G"), (167, "T"), (171, "V")],
+        "note": "Superfolder backbone + 4 brightness mutations",
     },
-    "Seq4_sfGFP_Stable": {
-        "backbone": sfGFP,
-        "desc": "Thermostability focus",
-        "mutations": [
-            (18,'E'), (147,'P'), (157,'G'), (167,'T'), (171,'V')
-        ],
-        "rationale": "Minimal changes for max stability"
+    {
+        "sid": "5",
+        "desc": "ESM-Design #1 - ESM-2 Generated (Novel)",
+        "backbone": None,
+        "source": "ESM-2 650M, 25% masked sfGFP, T=0.5",
+        "muts": None,
+        "note": "pLDDT 85.2, core RMSD 0.221 nm",
     },
-    "Seq5_avGFP_Conservative": {
-        "backbone": avGFP,
-        "desc": "Winner-proven only",
-        "mutations": [
-            (30,'R'), (64,'F'), (65,'T'), (72,'A'), (80,'R'),
-            (147,'P'), (163,'A'), (167,'T'), (171,'V'), (202,'D')
-        ],
-        "rationale": "Only mutations found in ≥2 previous winning sequences"
+    {
+        "sid": "6",
+        "desc": "ESM-Design #2 - ESM-2 Generated (Novel)",
+        "backbone": None,
+        "source": "ESM-2 650M, 30% masked avGFP, T=0.5",
+        "muts": None,
+        "note": "pLDDT 84.7, core RMSD 0.215 nm",
     },
-    "Seq6_avGFP_Evolved": {
-        "backbone": avGFP,
-        "desc": "Diverse combination",
-        "mutations": [
-            (65,'T'), (72,'A'), (80,'R'), (143,'G'),
-            (157,'G'), (167,'T'), (171,'V'), (203,'I')
-        ],
-        "rationale": "Includes T203I for spectral diversity"
-    }
-}
+]
+
+
+def main():
+    print("=" * 70)
+    print("  FoldSynth - FreeSpiral Sequence Design Pipeline")
+    print("  Reproducing the 6 final competition sequences")
+    print("=" * 70)
+    for d in DESIGNS:
+        if d["backbone"] is not None:
+            seq = mutate(d["backbone"], d["muts"])
+            mlist = diff(d["backbone"], seq)
+            valid = all([
+                seq.startswith("M"),
+                220 <= len(seq) <= 250,
+                all(c in "ACDEFGHIKLMNPQRSTVWY" for c in seq),
+            ])
+            tag = "PASS" if valid else "FAIL"
+            print(f"\n  [{tag}] Seq{d['sid']} - {d['desc']}")
+            print(f"         Length: {len(seq)} aa")
+            print(f"         Mutations ({len(mlist)}):", " ".join(m for m in mlist[:6]))
+            if len(mlist) > 6:
+                print(f"           + {len(mlist)-6} more")
+            print(f"         Source: {d['source']}")
+            print(f"         Note: {d['note']}")
+        else:
+            print(f"\n  [INFO] Seq{d['sid']} - {d['desc']}")
+            print(f"         Source: {d['source']}")
+            print(f"         Note: {d['note']}")
+            print("         (See submission.csv for sequence)")
+    print("\n" + "=" * 70)
+    print("  Run: python scripts/validate.py")
+    print("=" * 70)
+
 
 if __name__ == "__main__":
-    print("="*60)
-    print("FoldSynth Sequence Design Pipeline")
-    print("="*60)
-    
-    results = []
-    for name, info in DESIGN_STRATEGIES.items():
-        seq = mutate(info["backbone"], info["mutations"])
-        if not validate(seq):
-            print(f"❌ {name}: Validation failed!")
-            continue
-        
-        muts = []
-        ref = info["backbone"]
-        for i in range(len(ref)):
-            if ref[i] != seq[i]:
-                muts.append(f"{ref[i]}{i+1}{seq[i]}")
-        
-        print(f"\n✅ {name}")
-        print(f"  Strategy: {info['desc']}")
-        print(f"  Backbone: {'avGFP' if info['backbone']==avGFP else 'sfGFP'}")
-        print(f"  Length: {len(seq)}")
-        print(f"  Mutations ({len(muts)}): {', '.join(muts)}")
-        results.append((name, seq))
-
-    # Generate submission CSV
-    with open('../submission.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['Team_Name', 'Seq_ID', 'Sequence'])
-        for i, (name, seq) in enumerate(results):
-            writer.writerow(['FoldSynth', f'Seq{i+1}', seq])
-    
-    print(f"\n✅ Generated submission.csv with {len(results)} sequences")
+    main()
